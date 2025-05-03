@@ -34,6 +34,10 @@ public class StripeWebhookService {
                     .orElseThrow(() -> new RuntimeException("Order not found"));
 
             order.setStatus(OrderStatus.PREPARING);
+
+            // ✅ PaymentIntentId kaydet
+            order.setPaymentIntentId(session.getPaymentIntent());
+
             orderRepository.save(order);
         }
     }

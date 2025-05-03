@@ -21,9 +21,18 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
 
+    private void validateUserAddress(User user) {
+        if (user.getAddressLine() == null || user.getCity() == null || user.getPostalCode() == null || user.getCountry() == null ||
+            user.getAddressLine().isBlank() || user.getCity().isBlank() || user.getPostalCode().isBlank() || user.getCountry().isBlank()) {
+            throw new RuntimeException("Adres bilgileri eksik. Sipariş vermeden önce adresinizi tamamlayınız.");
+        }
+    }
+
     public Order placeOrder(Long userId, List<Long> productIds, List<Integer> quantities) {
         User customer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        validateUserAddress(customer);
 
         List<OrderItem> items = new ArrayList<>();
         double total = 0.0;
@@ -35,7 +44,7 @@ public class OrderService {
             int quantity = quantities.get(i);
 
             if (product.getStock() < quantity) {
-                throw new RuntimeException("Not enough stock for product: " + product.getName());
+                throw new RuntimeException("Yetersiz stok: " + product.getName());
             }
 
             product.setStock(product.getStock() - quantity);
@@ -56,7 +65,7 @@ public class OrderService {
                 .items(items)
                 .totalPrice(total)
                 .createdAt(LocalDateTime.now())
-                .status(OrderStatus.PREPARING) // ödeme başarılı, sipariş hazırlanıyor
+                .status(OrderStatus.PREPARING)
                 .build();
 
         return orderRepository.save(order);
@@ -65,6 +74,8 @@ public class OrderService {
     public Order placeOrderFromCart(Long userId) {
         User customer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        validateUserAddress(customer);
 
         Cart cart = cartRepository.findByUser(customer)
                 .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
@@ -105,7 +116,6 @@ public class OrderService {
                 .build();
 
         Order savedOrder = orderRepository.save(order);
-
         cart.getItems().clear();
         cartRepository.save(cart);
 
@@ -122,7 +132,6 @@ public class OrderService {
             }
         }
 
-        // sadece SHIPPED ve DELIVERED yapılmasına izin veriyoruz
         if (newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED || newStatus == OrderStatus.PREPARING) {
             order.setStatus(newStatus);
             orderRepository.save(order);
@@ -135,7 +144,6 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // stok geri eklenir
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             product.setStock(product.getStock() + item.getQuantity());
@@ -161,4 +169,43 @@ public class OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
     }
+    public void saveOrder(Order order) {
+        orderRepository.save(order);
+    }
+    // Kullanıcı değişim talebinde bulunur
+public void requestExchange(Long orderId, Long userId) {
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+
+    if (!order.getCustomer().getId().equals(userId)) {
+        throw new RuntimeException("Bu sipariş size ait değil");
+    }
+
+    if (order.getStatus() != OrderStatus.DELIVERED) {
+        throw new RuntimeException("Yalnızca teslim edilen siparişler için değişim talep edilebilir.");
+    }
+
+    order.setStatus(OrderStatus.EXCHANGE_REQUESTED);
+    orderRepository.save(order);
+}
+
+// Satıcı değişim talebini onaylar
+public void approveExchangeRequest(Long orderId, Long sellerId) {
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+
+    for (OrderItem item : order.getItems()) {
+        if (!item.getProduct().getSeller().getId().equals(sellerId)) {
+            throw new RuntimeException("Bu sipariş ürünleri sizin değil.");
+        }
+    }
+
+    if (order.getStatus() != OrderStatus.EXCHANGE_REQUESTED) {
+        throw new RuntimeException("Sipariş değişim beklemiyor.");
+    }
+
+    order.setStatus(OrderStatus.PREPARING);
+    orderRepository.save(order);
+}
+
 }
