@@ -28,4 +28,11 @@ public class User {
     private Role role;
 
     private boolean banned = false;
+
+    private String addressLine;
+    private String city;
+    private String postalCode;
+    private String country;
+
+    private String phoneNumber; // ✅ Yeni eklendi
 }

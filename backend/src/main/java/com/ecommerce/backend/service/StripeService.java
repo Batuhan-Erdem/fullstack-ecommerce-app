@@ -1,7 +1,9 @@
 package com.ecommerce.backend.service;
 
 import com.stripe.Stripe;
+import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -22,23 +24,23 @@ public class StripeService {
         Stripe.apiKey = secretKey;
     }
 
-    /**
-     * Stripe Checkout oturumu oluşturur
-     *
-     * @param lineItems Stripe line item listesi (ürünler)
-     * @param orderId   Sipariş ID'si (veritabanı ile eşleşme için metadata olarak yazılır)
-     * @return Checkout URL'i (Stripe tarafından oluşturulan ödeme sayfası linki)
-     */
     public String createCheckoutSession(List<SessionCreateParams.LineItem> lineItems, String orderId) throws Exception {
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
                 .setSuccessUrl("http://localhost:4200/payment-success")
                 .setCancelUrl("http://localhost:4200/payment-cancel")
                 .addAllLineItem(lineItems)
-                .putMetadata("orderId", orderId) // METADATA EKLENDİ ✅
+                .putMetadata("orderId", orderId)
                 .build();
 
         Session session = Session.create(params);
         return session.getUrl();
+    }
+
+    public void refundPayment(String paymentIntentId) throws Exception {
+        RefundCreateParams params = RefundCreateParams.builder()
+                .setPaymentIntent(paymentIntentId)
+                .build();
+        Refund.create(params);
     }
 }

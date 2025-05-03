@@ -31,10 +31,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/payment/webhook").permitAll()
-                        .anyRequest().authenticated()
-                )
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/payment/webhook").permitAll()
+                .requestMatchers("/api/user/update-address").authenticated() // ✅ ADRES GÜNCELLEME
+                .anyRequest().authenticated()
+            )
+            
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
