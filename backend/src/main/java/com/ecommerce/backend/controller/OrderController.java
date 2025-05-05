@@ -2,26 +2,31 @@ package com.ecommerce.backend.controller;
 
 import com.ecommerce.backend.model.Order;
 import com.ecommerce.backend.model.OrderStatus;
+import com.ecommerce.backend.model.User;
+import com.ecommerce.backend.repository.UserRepository;
 import com.ecommerce.backend.service.OrderService;
 import com.ecommerce.backend.service.StripeService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
-
+    private final UserRepository userRepository;
     private final OrderService orderService;
     private final StripeService stripeService;
 
     // 🛒 Sepetten sipariş oluştur
     @PostMapping("/from-cart")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<Order> placeOrderFromCart(@RequestParam Long userId) {
         return ResponseEntity.ok(orderService.placeOrderFromCart(userId));
     }
@@ -67,12 +72,20 @@ public class OrderController {
         }
     }
 
-    // 📦 Kullanıcının tüm siparişlerini getir
-    @GetMapping("/by-customer")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<Order>> getOrders(@RequestParam Long userId) {
-        return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));
+@GetMapping("/by-customer")
+@PreAuthorize("hasRole('CUSTOMER')")
+public ResponseEntity<List<Order>> getOrders(@RequestParam Long userId, Principal principal) {
+    String email = principal.getName();
+    User currentUser = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (!currentUser.getId().equals(userId)) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+
+    return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));
+}
+
 
     // 📄 Sipariş detaylarını getir
     @GetMapping("/{orderId}")
