@@ -21,24 +21,27 @@ public class StripeWebhookService {
 
     public void handleEvent(String payload, String sigHeader) throws SignatureVerificationException {
         com.stripe.model.Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
-
+    
         if ("checkout.session.completed".equals(event.getType())) {
             Session session = (Session) event.getDataObjectDeserializer()
                     .getObject()
                     .orElseThrow(() -> new RuntimeException("Deserialization error"));
-
+    
             String orderIdStr = session.getMetadata().get("orderId");
             Long orderId = Long.parseLong(orderIdStr);
-
+    
             Order order = orderRepository.findById(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
-
-            order.setStatus(OrderStatus.PREPARING);
-
-            // ✅ PaymentIntentId kaydet
-            order.setPaymentIntentId(session.getPaymentIntent());
-
+    
+            // Burada ödeme başarılı veya başarısız fark etmeksizin doğrudan PREPARING'e geçiyoruz.
+            order.setStatus(OrderStatus.PREPARING); // Ödeme durumunu beklemeden PREPARING'e alıyoruz.
+            order.setPaymentIntentId(session.getPaymentIntent());  // PaymentIntent ID'yi saklıyoruz
+    
             orderRepository.save(order);
         }
     }
+    
+    
+    
+
 }

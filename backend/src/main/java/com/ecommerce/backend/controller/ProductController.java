@@ -20,6 +20,11 @@ public class ProductController {
     public ResponseEntity<List<Product>> getAll() {
         return ResponseEntity.ok(productService.getAllActiveProducts());
     }
+    @GetMapping("/active-not-deleted")
+    public ResponseEntity<List<Product>> getActiveAndNotDeletedProducts() {
+        List<Product> products = productService.getActiveAndNotDeletedProducts();
+        return ResponseEntity.ok(products);
+    }
 
     @GetMapping("/category/{id}")
     public ResponseEntity<List<Product>> getByCategory(@PathVariable Long id) {
@@ -43,10 +48,10 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        productService.deleteProduct(id);
+        productService.deleteProductByAdmin(id);
         return ResponseEntity.ok().build();
     }
 }

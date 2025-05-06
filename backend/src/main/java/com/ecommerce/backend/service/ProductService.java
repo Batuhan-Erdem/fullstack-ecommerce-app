@@ -23,6 +23,11 @@ public class ProductService {
         return productRepository.findByActiveTrue();
     }
 
+    // Aktif ve admin tarafından silinmemiş ürünleri döndürmek
+    public List<Product> getActiveAndNotDeletedProducts() {
+        return productRepository.findByActiveTrueAndDeletedByAdminFalse();
+    }
+
     public List<Product> getProductsByCategory(Long categoryId) {
         return productRepository.findByCategoryId(categoryId);
     }
@@ -53,7 +58,13 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public void deleteProduct(Long productId) {
-        productRepository.deleteById(productId);
+    public void deleteProductByAdmin(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Ürünün "deletedByAdmin" kısmını true yapıyoruz
+        product.setDeletedByAdmin(true);
+        productRepository.save(product);
     }
+
 }

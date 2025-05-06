@@ -40,4 +40,6 @@ public class Product {
     private User seller;
 
     private boolean active = true;
+    
+    private boolean deletedByAdmin = false; 
 }
