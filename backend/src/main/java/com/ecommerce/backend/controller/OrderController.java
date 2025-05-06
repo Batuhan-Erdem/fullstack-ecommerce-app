@@ -21,12 +21,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
     private final UserRepository userRepository;
+
     private final OrderService orderService;
     private final StripeService stripeService;
 
     // 🛒 Sepetten sipariş oluştur
     @PostMapping("/from-cart")
-    @PreAuthorize("hasAuthority('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Order> placeOrderFromCart(@RequestParam Long userId) {
         return ResponseEntity.ok(orderService.placeOrderFromCart(userId));
     }
@@ -72,20 +73,19 @@ public class OrderController {
         }
     }
 
-@GetMapping("/by-customer")
-@PreAuthorize("hasRole('CUSTOMER')")
-public ResponseEntity<List<Order>> getOrders(@RequestParam Long userId, Principal principal) {
-    String email = principal.getName();
-    User currentUser = userRepository.findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+    @GetMapping("/by-customer")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<Order>> getOrders(@RequestParam Long userId, Principal principal) {
+        String email = principal.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    if (!currentUser.getId().equals(userId)) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (!currentUser.getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));
     }
-
-    return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));
-}
-
 
     // 📄 Sipariş detaylarını getir
     @GetMapping("/{orderId}")

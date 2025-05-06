@@ -36,39 +36,35 @@ public class CartService {
         return cartRepository.save(newCart);
     }
     @Transactional
-    public Cart addToCart(Long userId, Long productId, int quantity) {
-        
-        Cart cart = getOrCreateCart(userId);
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-                System.out.println("STOK DURUMU: " + product.getStock());
-                System.out.println("İSTENEN MİKTAR: " + quantity);
-        if (product.getStock() < quantity) {
+public Cart addToCart(Long userId, Long productId, int quantity) {
+    Cart cart = getOrCreateCart(userId);
+    Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            throw new RuntimeException("Yeterli stok yok.");
-        }
-    
-        for (CartItem item : cart.getItems()) {
-            if (item.getProduct().getId().equals(productId)) {
-                item.setQuantity(item.getQuantity() + quantity);
-                product.setStock(product.getStock() - quantity);
-                productRepository.save(product);
-                return cartRepository.save(cart);
-            }
-        }
-    
-        CartItem newItem = CartItem.builder()
-                .product(product)
-                .quantity(quantity)
-                .build();
-    
-        cart.getItems().add(newItem);
-    
-        product.setStock(product.getStock() - quantity);
-        productRepository.save(product);
-    
-        return cartRepository.save(cart);
+    System.out.println("STOK DURUMU: " + product.getStock());
+    System.out.println("İSTENEN MİKTAR: " + quantity);
+
+    if (product.getStock() < quantity) {
+        throw new RuntimeException("Yeterli stok yok.");
     }
+
+    for (CartItem item : cart.getItems()) {
+        if (item.getProduct().getId().equals(productId)) {
+            item.setQuantity(item.getQuantity() + quantity);
+            return cartRepository.save(cart);
+        }
+    }
+
+    CartItem newItem = CartItem.builder()
+            .product(product)
+            .quantity(quantity)
+            .build();
+
+    cart.getItems().add(newItem);
+
+    return cartRepository.save(cart);
+}
+
     
 
     public Cart removeFromCart(Long userId, Long productId) {
