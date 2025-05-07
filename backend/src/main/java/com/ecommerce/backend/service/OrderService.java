@@ -3,6 +3,7 @@ package com.ecommerce.backend.service;
 import com.ecommerce.backend.exception.MissingAddressException;
 import com.ecommerce.backend.model.*;
 import com.ecommerce.backend.repository.CartRepository;
+import com.ecommerce.backend.repository.OrderItemRepository;
 import com.ecommerce.backend.repository.OrderRepository;
 import com.ecommerce.backend.repository.ProductRepository;
 import com.ecommerce.backend.repository.UserRepository;
@@ -21,7 +22,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
-
+    private final OrderItemRepository orderItemRepository;      
     private void validateUserAddress(User user) {
         if (user.getAddresses().isEmpty()) {
             throw new MissingAddressException("Kullanıcının adresi yok. Sipariş vermeden önce adres ekleyin.");
@@ -74,7 +75,13 @@ public class OrderService {
 
         return orderRepository.save(order);
     }
+    public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
+        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
 
+        orderItem.setStatus(status);
+        orderItemRepository.save(orderItem);
+    }
     public Order placeOrderFromCart(Long userId) {
         User customer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

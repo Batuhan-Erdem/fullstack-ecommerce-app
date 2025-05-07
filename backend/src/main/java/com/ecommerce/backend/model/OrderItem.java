@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "order_items")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,6 +20,13 @@ public class OrderItem {
     private Product product;
 
     private int quantity;
+    
+    private double priceAtPurchase;
 
-    private double priceAtPurchase; // Sipariş anındaki birim fiyat
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderItemStatus status = OrderItemStatus.PENDING;  // Varsayılan durum PENDING
+
+    @ManyToOne
+    private Order order;
 }

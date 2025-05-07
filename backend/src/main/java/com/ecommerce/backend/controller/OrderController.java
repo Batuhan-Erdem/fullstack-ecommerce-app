@@ -1,6 +1,7 @@
 package com.ecommerce.backend.controller;
 
 import com.ecommerce.backend.model.Order;
+import com.ecommerce.backend.model.OrderItemStatus;
 import com.ecommerce.backend.model.OrderStatus;
 import com.ecommerce.backend.model.User;
 import com.ecommerce.backend.repository.UserRepository;
@@ -44,6 +45,14 @@ public class OrderController {
         return ResponseEntity.ok("Durum güncellendi: " + status.name());
     }
 
+    @PutMapping("/update-item-status")
+    public ResponseEntity<String> updateOrderItemStatus(
+            @RequestParam Long orderItemId,
+            @RequestParam OrderItemStatus status) {
+        orderService.updateOrderItemStatus(orderItemId, status);
+        return ResponseEntity.ok("Order item status updated to " + status.name());
+    }
+
     // ❌ Siparişi Admin iptal eder
     @PutMapping("/cancel")
     @PreAuthorize("hasRole('ADMIN')")
@@ -72,7 +81,6 @@ public class OrderController {
             return ResponseEntity.badRequest().body("İade işlemi sırasında hata: " + e.getMessage());
         }
     }
-
 
     @GetMapping("/by-customer")
     @PreAuthorize("hasRole('CUSTOMER')")
