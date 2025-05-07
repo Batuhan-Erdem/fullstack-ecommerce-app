@@ -1,8 +1,10 @@
 package com.ecommerce.backend.controller;
 
 import com.ecommerce.backend.dto.UpdateAddressRequest;
+import com.ecommerce.backend.model.Address;
 import com.ecommerce.backend.model.User;
 import com.ecommerce.backend.repository.UserRepository;
+import com.ecommerce.backend.repository.AddressRepository;
 import com.ecommerce.backend.model.Role;
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/user")
@@ -20,6 +21,7 @@ import java.util.Optional;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
 
     @PutMapping("/update-address")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -27,37 +29,45 @@ public class UserController {
         String email = principal.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+    
+        // Birden fazla adres varsa ve istenen adresin id'sine göre adresi bul
+        Address address = user.getAddresses().stream()
+                .filter(addr -> addr.getId().equals(request.getAddressId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+    
         boolean changed = false;
-
-        if (!request.getAddressLine().equals(user.getAddressLine())) {
-            user.setAddressLine(request.getAddressLine());
+    
+        // Adres güncellemeleri
+        if (request.getAddressLine() != null && !request.getAddressLine().equals(address.getAddressLine())) {
+            address.setAddressLine(request.getAddressLine());
             changed = true;
         }
-        if (!request.getCity().equals(user.getCity())) {
-            user.setCity(request.getCity());
+        if (request.getCity() != null && !request.getCity().equals(address.getCity())) {
+            address.setCity(request.getCity());
             changed = true;
         }
-        if (!request.getPostalCode().equals(user.getPostalCode())) {
-            user.setPostalCode(request.getPostalCode());
+        if (request.getPostalCode() != null && !request.getPostalCode().equals(address.getPostalCode())) {
+            address.setPostalCode(request.getPostalCode());
             changed = true;
         }
-        if (!request.getCountry().equals(user.getCountry())) {
-            user.setCountry(request.getCountry());
+        if (request.getCountry() != null && !request.getCountry().equals(address.getCountry())) {
+            address.setCountry(request.getCountry());
             changed = true;
         }
-        if (!request.getPhoneNumber().equals(user.getPhoneNumber())) {
-            user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(address.getPhoneNumber())) {
+            address.setPhoneNumber(request.getPhoneNumber());
             changed = true;
         }
-
+    
         if (changed) {
-            userRepository.save(user);
-            return ResponseEntity.ok("Adres ve iletişim bilgileri başarıyla güncellendi.");
+            addressRepository.save(address); // Değişiklikler kaydediliyor
+            return ResponseEntity.ok("Adres bilgileri başarıyla güncellendi.");
         } else {
             return ResponseEntity.ok("Adres bilgileri zaten güncel.");
         }
     }
+    
 
     @PutMapping("/ban/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -85,6 +95,22 @@ public class UserController {
         userRepository.save(user);
 
         return ResponseEntity.ok("Kullanıcının ban'ı kaldırıldı.");
+    }
+    @PutMapping("/approve-seller-request/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> approveSellerRequest(@PathVariable Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRole() != Role.CUSTOMER) {
+            return ResponseEntity.badRequest().body("User is already a seller.");
+        }
+
+        user.setRole(Role.SELLER);  // Kullanıcının rolünü SELLER olarak değiştir
+        user.setSellerRequested(false); // Başvuru onaylandı, başvuru durumu false
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Seller request approved and role updated.");
     }
 
 }

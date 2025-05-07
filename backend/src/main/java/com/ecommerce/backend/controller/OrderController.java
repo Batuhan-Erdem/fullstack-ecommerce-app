@@ -73,6 +73,7 @@ public class OrderController {
         }
     }
 
+
     @GetMapping("/by-customer")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<Order>> getOrders(@RequestParam Long userId, Principal principal) {
@@ -87,14 +88,14 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));
     }
 
-    // 📄 Sipariş detaylarını getir
+    // Sipariş detaylarını getir
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN','SELLER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'SELLER')")
     public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
-    // 📦 Kullanıcı değişim talebi oluşturur
+    // Kullanıcı değişim talebi oluşturur
     @PutMapping("/request-exchange")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<String> requestExchange(
@@ -104,7 +105,7 @@ public class OrderController {
         return ResponseEntity.ok("Değişim talebiniz alınmıştır.");
     }
 
-    // ✔️ Satıcı değişimi onaylar
+    // Satıcı değişimi onaylar
     @PutMapping("/approve-exchange")
     @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<String> approveExchangeRequest(

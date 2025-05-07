@@ -3,6 +3,8 @@ package com.ecommerce.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -29,10 +31,12 @@ public class User {
 
     private boolean banned = false;
 
-    private String addressLine;
-    private String city;
-    private String postalCode;
-    private String country;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    private List<Address> addresses;
 
-    private String phoneNumber; // ✅ Yeni eklendi
+    private String phoneNumber;
+
+    private String stripeCustomerId; // Stripe müşteri ID'si
+    private boolean isSellerRequested = false; // Seller olma talebi
 }

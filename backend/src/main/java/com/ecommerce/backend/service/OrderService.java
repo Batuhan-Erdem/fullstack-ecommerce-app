@@ -23,11 +23,8 @@ public class OrderService {
     private final CartRepository cartRepository;
 
     private void validateUserAddress(User user) {
-        if (user.getAddressLine() == null || user.getCity() == null || user.getPostalCode() == null
-                || user.getCountry() == null ||
-                user.getAddressLine().isBlank() || user.getCity().isBlank() || user.getPostalCode().isBlank()
-                || user.getCountry().isBlank()) {
-            throw new MissingAddressException("Adres bilgileri eksik. Sipariş vermeden önce adresinizi tamamlayınız.");
+        if (user.getAddresses().isEmpty()) {
+            throw new MissingAddressException("Kullanıcının adresi yok. Sipariş vermeden önce adres ekleyin.");
         }
     }
 
@@ -36,6 +33,9 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         validateUserAddress(customer);
+
+        // Kullanıcının son adresini alalım
+        Address latestAddress = customer.getAddresses().get(0); // veya son adresi alabilirsiniz
 
         List<OrderItem> items = new ArrayList<>();
         double total = 0.0;
@@ -65,6 +65,7 @@ public class OrderService {
 
         Order order = Order.builder()
                 .customer(customer)
+                .address(latestAddress) // Adresi ekliyoruz
                 .items(items)
                 .totalPrice(total)
                 .createdAt(LocalDateTime.now())
@@ -86,6 +87,9 @@ public class OrderService {
         if (cart.getItems().isEmpty()) {
             throw new RuntimeException("Sepet boş");
         }
+
+        // Kullanıcının son adresini alalım
+        Address latestAddress = customer.getAddresses().get(0); // veya son adresi alabilirsiniz
 
         List<OrderItem> orderItems = new ArrayList<>();
         double total = 0.0;
@@ -112,6 +116,7 @@ public class OrderService {
 
         Order order = Order.builder()
                 .customer(customer)
+                .address(latestAddress) // Adresi ekliyoruz
                 .items(orderItems)
                 .totalPrice(total)
                 .createdAt(LocalDateTime.now())
@@ -124,7 +129,6 @@ public class OrderService {
 
         return savedOrder;
     }
-
     public void updateOrderStatus(Long orderId, Long sellerId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
