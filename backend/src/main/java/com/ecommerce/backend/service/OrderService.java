@@ -34,17 +34,20 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         validateUserAddress(customer);
-
-        // Kullanıcının son adresini alalım
-        Address latestAddress = customer.getAddresses().get(0); // veya son adresi alabilirsiniz
-
+        Address latestAddress = customer.getAddresses().get(0);
         List<OrderItem> items = new ArrayList<>();
         double total = 0.0;
+
+        Order order = Order.builder()
+                .customer(customer)
+                .address(latestAddress)
+                .createdAt(LocalDateTime.now())
+                .status(OrderStatus.PREPARING)
+                .build();
 
         for (int i = 0; i < productIds.size(); i++) {
             Product product = productRepository.findById(productIds.get(i))
                     .orElseThrow(() -> new RuntimeException("Product not found"));
-
             int quantity = quantities.get(i);
 
             if (product.getStock() < quantity) {
@@ -58,30 +61,19 @@ public class OrderService {
                     .product(product)
                     .quantity(quantity)
                     .priceAtPurchase(product.getPrice().doubleValue())
+                    .status(OrderItemStatus.PREPARING)
+                    .order(order) // ✅ BURADA SET EDİLİYOR
                     .build();
 
             items.add(item);
             total += quantity * product.getPrice().doubleValue();
         }
 
-        Order order = Order.builder()
-                .customer(customer)
-                .address(latestAddress) // Adresi ekliyoruz
-                .items(items)
-                .totalPrice(total)
-                .createdAt(LocalDateTime.now())
-                .status(OrderStatus.PREPARING)
-                .build();
-
+        order.setItems(items);
+        order.setTotalPrice(total);
         return orderRepository.save(order);
     }
-    public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
-        OrderItem orderItem = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new RuntimeException("Order item not found"));
 
-        orderItem.setStatus(status);
-        orderItemRepository.save(orderItem);
-    }
     public Order placeOrderFromCart(Long userId) {
         User customer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -95,11 +87,16 @@ public class OrderService {
             throw new RuntimeException("Sepet boş");
         }
 
-        // Kullanıcının son adresini alalım
-        Address latestAddress = customer.getAddresses().get(0); // veya son adresi alabilirsiniz
-
+        Address latestAddress = customer.getAddresses().get(0);
         List<OrderItem> orderItems = new ArrayList<>();
         double total = 0.0;
+
+        Order order = Order.builder()
+                .customer(customer)
+                .address(latestAddress)
+                .createdAt(LocalDateTime.now())
+                .status(OrderStatus.PREPARING)
+                .build();
 
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
@@ -115,26 +112,29 @@ public class OrderService {
                     .product(product)
                     .quantity(cartItem.getQuantity())
                     .priceAtPurchase(product.getPrice().doubleValue())
+                    .status(OrderItemStatus.PREPARING)
+                    .order(order) // ✅ BURADA SET EDİLİYOR
                     .build();
 
             orderItems.add(item);
             total += cartItem.getQuantity() * product.getPrice().doubleValue();
         }
 
-        Order order = Order.builder()
-                .customer(customer)
-                .address(latestAddress) // Adresi ekliyoruz
-                .items(orderItems)
-                .totalPrice(total)
-                .createdAt(LocalDateTime.now())
-                .status(OrderStatus.PREPARING)
-                .build();
+        order.setItems(orderItems);
+        order.setTotalPrice(total);
 
         Order savedOrder = orderRepository.save(order);
         cart.getItems().clear();
         cartRepository.save(cart);
 
         return savedOrder;
+    }
+    public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
+        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
+
+        orderItem.setStatus(status);
+        orderItemRepository.save(orderItem);
     }
     public void updateOrderStatus(Long orderId, Long sellerId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)

@@ -33,14 +33,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/webhook").permitAll()
-                        .requestMatchers("/api/user/update-address").authenticated()
-                        .requestMatchers("/api/categories/**").hasRole("ADMIN") // 👈 GEREKEN EKLEME
+                        .requestMatchers("/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers("/api/cart/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/user/update-address").hasRole("CUSTOMER")
+                        .requestMatchers("/api/orders/refund").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/cancel").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/update-status").hasRole("SELLER")
+                        .requestMatchers("/api/orders/approve-exchange").hasRole("SELLER")
+                        .requestMatchers("/api/orders/from-cart").hasRole("CUSTOMER")
+                        .requestMatchers("/api/orders/request-exchange").hasRole("CUSTOMER")
+                        .requestMatchers("/api/orders/by-customer").hasRole("CUSTOMER")
+                        .requestMatchers("/api/orders/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
+    
 
     @Bean
     public AuthenticationProvider authenticationProvider() {

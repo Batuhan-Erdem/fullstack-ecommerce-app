@@ -1,5 +1,7 @@
 package com.ecommerce.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,5 +30,6 @@ public class OrderItem {
     private OrderItemStatus status = OrderItemStatus.PENDING;  // Varsayılan durum PENDING
 
     @ManyToOne
+    @JsonIgnore
     private Order order;
 }

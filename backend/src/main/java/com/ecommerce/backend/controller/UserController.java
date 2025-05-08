@@ -29,15 +29,15 @@ public class UserController {
         String email = principal.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-    
+
         // Birden fazla adres varsa ve istenen adresin id'sine göre adresi bul
         Address address = user.getAddresses().stream()
                 .filter(addr -> addr.getId().equals(request.getAddressId()))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Address not found"));
-    
+
         boolean changed = false;
-    
+
         // Adres güncellemeleri
         if (request.getAddressLine() != null && !request.getAddressLine().equals(address.getAddressLine())) {
             address.setAddressLine(request.getAddressLine());
@@ -59,7 +59,7 @@ public class UserController {
             address.setPhoneNumber(request.getPhoneNumber());
             changed = true;
         }
-    
+
         if (changed) {
             addressRepository.save(address); // Değişiklikler kaydediliyor
             return ResponseEntity.ok("Adres bilgileri başarıyla güncellendi.");
@@ -67,7 +67,19 @@ public class UserController {
             return ResponseEntity.ok("Adres bilgileri zaten güncel.");
         }
     }
-    
+
+    @PostMapping("/add-address")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<String> addAddress(@RequestBody Address request, Principal principal) {
+        String email = principal.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        request.setUser(user);
+        addressRepository.save(request);
+
+        return ResponseEntity.ok("Adres başarıyla eklendi.");
+    }
 
     @PutMapping("/ban/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -96,6 +108,7 @@ public class UserController {
 
         return ResponseEntity.ok("Kullanıcının ban'ı kaldırıldı.");
     }
+
     @PutMapping("/approve-seller-request/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> approveSellerRequest(@PathVariable Long userId) {
@@ -106,7 +119,7 @@ public class UserController {
             return ResponseEntity.badRequest().body("User is already a seller.");
         }
 
-        user.setRole(Role.SELLER);  // Kullanıcının rolünü SELLER olarak değiştir
+        user.setRole(Role.SELLER); // Kullanıcının rolünü SELLER olarak değiştir
         user.setSellerRequested(false); // Başvuru onaylandı, başvuru durumu false
         userRepository.save(user);
 

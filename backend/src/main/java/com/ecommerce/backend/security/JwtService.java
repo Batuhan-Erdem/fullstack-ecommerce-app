@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import io.jsonwebtoken.security.Keys;
@@ -66,17 +67,21 @@ public class JwtService {
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", "ROLE_" + user.getRole().name());  // ROLE_ prefix ekleniyor
-        claims.put("id", user.getId());  // 🧨 BURASI KRİTİK
+        String role = "ROLE_" + user.getRole().name();
+    
+        claims.put("role", role);  // Optional – loglama vs. için
+        claims.put("id", user.getId());
+        claims.put("authorities", List.of(role)); // 💥 ASIL GEREKEN BU!
     
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 saat
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
                 .compact();
     }
+    
     
     
 }

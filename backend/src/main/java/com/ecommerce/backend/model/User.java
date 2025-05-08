@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -33,9 +35,9 @@ public class User {
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
+    @JsonManagedReference
     private List<Address> addresses;
 
-    private String phoneNumber;
 
     private String stripeCustomerId; // Stripe müşteri ID'si
     private boolean isSellerRequested = false; // Seller olma talebi
