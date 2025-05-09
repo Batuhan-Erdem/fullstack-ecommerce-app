@@ -126,4 +126,12 @@ public class UserController {
         return ResponseEntity.ok("Seller request approved and role updated.");
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SELLER', 'ADMIN')")
+    public ResponseEntity<User> getCurrentUser(Principal principal) {
+        String email = principal.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(user);
+    }
 }

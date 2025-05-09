@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "products")
@@ -34,14 +35,13 @@ public class Product {
     private List<String> imageUrls = new ArrayList<>(); // image URL'leri
 
     @ManyToOne
-    @JsonBackReference() // ✅ Sonsuz döngüyü önler
+    @JsonIgnoreProperties("products") // Sadece products alanı hariç tutulsun
     private Category category;
 
     @ManyToOne
-    @JsonBackReference("seller-products")
+    @JsonIgnoreProperties({ "products", "addresses", "orders" })
     @JoinColumn(name = "seller_id")
     private User seller;
-
     private boolean active = true;
 
     private boolean deletedByAdmin = false;

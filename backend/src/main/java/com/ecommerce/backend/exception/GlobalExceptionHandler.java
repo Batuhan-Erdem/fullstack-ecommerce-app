@@ -14,7 +14,10 @@ public class GlobalExceptionHandler {
 public ResponseEntity<String> handleApiException(ApiException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("❌ " + e.getMessage());
 }
-
-
-    // Diğer exceptionlar da buraya eklenebilir
+    @ExceptionHandler(MissingAddressException.class)
+    public ResponseEntity<?> handleMissingAddress(MissingAddressException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ex.getMessage());
+    }
 }

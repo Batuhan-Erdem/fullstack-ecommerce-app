@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
@@ -35,16 +36,17 @@ public class User {
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
-    @JsonManagedReference
+    @JsonIgnoreProperties("user")
     private List<Address> addresses;
-    
+
     @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("seller-products")
+    @JsonIgnoreProperties("seller")
     private List<Product> products; // Kullanıcının sattığı ürünler
 
     private String stripeCustomerId; // Stripe müşteri ID'si
     private boolean isSellerRequested = false; // Seller olma talebi
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("customer")
     private List<Order> orders; // Kullanıcının verdiği siparişler
 }

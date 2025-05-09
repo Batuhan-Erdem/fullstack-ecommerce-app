@@ -25,7 +25,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;      
     private void validateUserAddress(User user) {
         if (user.getAddresses().isEmpty()) {
-            throw new MissingAddressException("Kullanıcının adresi yok. Sipariş vermeden önce adres ekleyin.");
+            throw new MissingAddressException("The user does not have an address. Add address before ordering.");
         }
     }
 
@@ -51,7 +51,7 @@ public class OrderService {
             int quantity = quantities.get(i);
 
             if (product.getStock() < quantity) {
-                throw new RuntimeException("Yetersiz stok: " + product.getName());
+                throw new RuntimeException("Insufficient stock: " + product.getName());
             }
 
             product.setStock(product.getStock() - quantity);
@@ -74,7 +74,8 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    public Order placeOrderFromCart(Long userId) {
+public Order placeOrderFromCart(Long userId) {
+    try {
         User customer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -84,7 +85,7 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
 
         if (cart.getItems().isEmpty()) {
-            throw new RuntimeException("Sepet boş");
+            throw new RuntimeException("Cart is empty. Cannot place order.");
         }
 
         Address latestAddress = customer.getAddresses().get(0);
@@ -102,7 +103,7 @@ public class OrderService {
             Product product = cartItem.getProduct();
 
             if (product.getStock() < cartItem.getQuantity()) {
-                throw new RuntimeException("Yetersiz stok: " + product.getName());
+                throw new RuntimeException("Insufficient stock: " + product.getName());
             }
 
             product.setStock(product.getStock() - cartItem.getQuantity());
@@ -113,7 +114,7 @@ public class OrderService {
                     .quantity(cartItem.getQuantity())
                     .priceAtPurchase(product.getPrice().doubleValue())
                     .status(OrderItemStatus.PREPARING)
-                    .order(order) // ✅ BURADA SET EDİLİYOR
+                    .order(order)
                     .build();
 
             orderItems.add(item);
@@ -124,11 +125,19 @@ public class OrderService {
         order.setTotalPrice(total);
 
         Order savedOrder = orderRepository.save(order);
+
+        // ✅ Her şey sorunsuzsa sepeti temizle
         cart.getItems().clear();
         cartRepository.save(cart);
 
         return savedOrder;
+
+    } catch (Exception e) {
+        // ❌ Sipariş başarısızsa sepet dokunulmaz
+        throw new RuntimeException("Failed to place order: " + e.getMessage());
     }
+}
+
     public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
         OrderItem orderItem = orderItemRepository.findById(orderItemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
