@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,7 +25,8 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
-    private final OrderItemRepository orderItemRepository;      
+    private final OrderItemRepository orderItemRepository;
+
     private void validateUserAddress(User user) {
         if (user.getAddresses().isEmpty()) {
             throw new MissingAddressException("The user does not have an address. Add address before ordering.");
@@ -76,65 +78,65 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-@Transactional
-public Order placeOrderFromCart(Long userId) {
-    User customer = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    @Transactional
+    public Order placeOrderFromCart(Long userId) {
+        User customer = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    validateUserAddress(customer);
+        validateUserAddress(customer);
 
-    Cart cart = cartRepository.findByUser(customer)
-            .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
+        Cart cart = cartRepository.findByUser(customer)
+                .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
 
-    if (cart.getItems().isEmpty()) {
-        throw new RuntimeException("Cart is empty. Cannot place order.");
-    }
-
-    Address latestAddress = customer.getAddresses().get(0);
-    List<OrderItem> orderItems = new ArrayList<>();
-    double total = 0.0;
-
-    Order order = Order.builder()
-            .customer(customer)
-            .address(latestAddress)
-            .createdAt(LocalDateTime.now())
-            .status(OrderStatus.PREPARING)
-            .build();
-
-    for (CartItem cartItem : cart.getItems()) {
-        // 🔧 BURASI ÖNEMLİ — product'ı DB'den yeniden çekiyoruz
-        Product product = productRepository.findById(cartItem.getProduct().getId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
-        if (product.getStock() < cartItem.getQuantity()) {
-            throw new RuntimeException("Insufficient stock: " + product.getName());
+        if (cart.getItems().isEmpty()) {
+            throw new RuntimeException("Cart is empty. Cannot place order.");
         }
 
-        product.setStock(product.getStock() - cartItem.getQuantity());
-        productRepository.save(product);
+        Address latestAddress = customer.getAddresses().get(0);
+        List<OrderItem> orderItems = new ArrayList<>();
+        double total = 0.0;
 
-        OrderItem item = OrderItem.builder()
-                .product(product)
-                .quantity(cartItem.getQuantity())
-                .priceAtPurchase(product.getPrice().doubleValue())
-                .status(OrderItemStatus.PREPARING)
-                .order(order)
+        Order order = Order.builder()
+                .customer(customer)
+                .address(latestAddress)
+                .createdAt(LocalDateTime.now())
+                .status(OrderStatus.PREPARING)
                 .build();
 
-        orderItems.add(item);
-        total += cartItem.getQuantity() * product.getPrice().doubleValue();
+        for (CartItem cartItem : cart.getItems()) {
+            // 🔧 BURASI ÖNEMLİ — product'ı DB'den yeniden çekiyoruz
+            Product product = productRepository.findById(cartItem.getProduct().getId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            if (product.getStock() < cartItem.getQuantity()) {
+                throw new RuntimeException("Insufficient stock: " + product.getName());
+            }
+
+            product.setStock(product.getStock() - cartItem.getQuantity());
+            productRepository.save(product);
+
+            OrderItem item = OrderItem.builder()
+                    .product(product)
+                    .quantity(cartItem.getQuantity())
+                    .priceAtPurchase(product.getPrice().doubleValue())
+                    .status(OrderItemStatus.PREPARING)
+                    .order(order)
+                    .build();
+
+            orderItems.add(item);
+            total += cartItem.getQuantity() * product.getPrice().doubleValue();
+        }
+
+        order.setItems(orderItems);
+        order.setTotalPrice(total);
+
+        Order savedOrder = orderRepository.save(order);
+
+        cart.getItems().clear();
+        cartRepository.save(cart);
+
+        return savedOrder;
     }
-
-    order.setItems(orderItems);
-    order.setTotalPrice(total);
-
-    Order savedOrder = orderRepository.save(order);
-
-    cart.getItems().clear();
-    cartRepository.save(cart);
-
-    return savedOrder;
-}
 
     public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
         OrderItem orderItem = orderItemRepository.findById(orderItemId)
@@ -142,7 +144,24 @@ public Order placeOrderFromCart(Long userId) {
 
         orderItem.setStatus(status);
         orderItemRepository.save(orderItem);
+
+        // ✅ Order'ı da güncelle
+        Order order = orderItem.getOrder();
+        boolean allShipped = order.getItems().stream().allMatch(item -> item.getStatus() == OrderItemStatus.SHIPPED);
+        boolean allDelivered = order.getItems().stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED);
+
+        if (allDelivered) {
+            order.setStatus(OrderStatus.DELIVERED);
+        } else if (allShipped) {
+            order.setStatus(OrderStatus.SHIPPED);
+        } else {
+            order.setStatus(OrderStatus.PREPARING);
+        }
+
+        orderRepository.save(order);
     }
+
     public void updateOrderStatus(Long orderId, Long sellerId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
