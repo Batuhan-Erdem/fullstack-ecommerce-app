@@ -7,15 +7,17 @@ import com.ecommerce.backend.repository.OrderItemRepository;
 import com.ecommerce.backend.repository.OrderRepository;
 import com.ecommerce.backend.repository.ProductRepository;
 import com.ecommerce.backend.repository.UserRepository;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -171,7 +173,7 @@ public Order placeOrderFromCart(Long userId) {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             product.setStock(product.getStock() + item.getQuantity());
-            productRepository.save(product);
+            product = productRepository.save(product);
         }
 
         order.setStatus(OrderStatus.CANCELLED);

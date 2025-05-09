@@ -21,9 +21,10 @@ public class Order {
     @ManyToOne
     private User customer;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "order_id") 
-    private List<OrderItem> items;
+@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<OrderItem> items;
+
     
 
     private double totalPrice;
