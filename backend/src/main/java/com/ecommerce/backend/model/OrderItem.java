@@ -26,7 +26,7 @@ public class OrderItem {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderItemStatus status = OrderItemStatus.PENDING;
+    private OrderItemStatus status = OrderItemStatus.PREPARING;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
