@@ -21,9 +21,9 @@ public class Order {
     @ManyToOne
     private User customer;
 
-    @JoinColumn(name = "order_id") 
 @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 private List<OrderItem> items;
+
 
     
 

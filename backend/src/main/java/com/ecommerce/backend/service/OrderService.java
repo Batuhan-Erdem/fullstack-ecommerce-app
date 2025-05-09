@@ -76,68 +76,64 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+@Transactional
 public Order placeOrderFromCart(Long userId) {
-    try {
-        User customer = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    User customer = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        validateUserAddress(customer);
+    validateUserAddress(customer);
 
-        Cart cart = cartRepository.findByUser(customer)
-                .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
+    Cart cart = cartRepository.findByUser(customer)
+            .orElseThrow(() -> new RuntimeException("Cart not found or empty"));
 
-        if (cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty. Cannot place order.");
+    if (cart.getItems().isEmpty()) {
+        throw new RuntimeException("Cart is empty. Cannot place order.");
+    }
+
+    Address latestAddress = customer.getAddresses().get(0);
+    List<OrderItem> orderItems = new ArrayList<>();
+    double total = 0.0;
+
+    Order order = Order.builder()
+            .customer(customer)
+            .address(latestAddress)
+            .createdAt(LocalDateTime.now())
+            .status(OrderStatus.PREPARING)
+            .build();
+
+    for (CartItem cartItem : cart.getItems()) {
+        // 🔧 BURASI ÖNEMLİ — product'ı DB'den yeniden çekiyoruz
+        Product product = productRepository.findById(cartItem.getProduct().getId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (product.getStock() < cartItem.getQuantity()) {
+            throw new RuntimeException("Insufficient stock: " + product.getName());
         }
 
-        Address latestAddress = customer.getAddresses().get(0);
-        List<OrderItem> orderItems = new ArrayList<>();
-        double total = 0.0;
+        product.setStock(product.getStock() - cartItem.getQuantity());
+        productRepository.save(product);
 
-        Order order = Order.builder()
-                .customer(customer)
-                .address(latestAddress)
-                .createdAt(LocalDateTime.now())
-                .status(OrderStatus.PREPARING)
+        OrderItem item = OrderItem.builder()
+                .product(product)
+                .quantity(cartItem.getQuantity())
+                .priceAtPurchase(product.getPrice().doubleValue())
+                .status(OrderItemStatus.PREPARING)
+                .order(order)
                 .build();
 
-        for (CartItem cartItem : cart.getItems()) {
-            Product product = cartItem.getProduct();
-
-            if (product.getStock() < cartItem.getQuantity()) {
-                throw new RuntimeException("Insufficient stock: " + product.getName());
-            }
-
-            product.setStock(product.getStock() - cartItem.getQuantity());
-            productRepository.save(product);
-
-            OrderItem item = OrderItem.builder()
-                    .product(product)
-                    .quantity(cartItem.getQuantity())
-                    .priceAtPurchase(product.getPrice().doubleValue())
-                    .status(OrderItemStatus.PREPARING)
-                    .order(order)
-                    .build();
-
-            orderItems.add(item);
-            total += cartItem.getQuantity() * product.getPrice().doubleValue();
-        }
-
-        order.setItems(orderItems);
-        order.setTotalPrice(total);
-
-        Order savedOrder = orderRepository.save(order);
-
-        // ✅ Her şey sorunsuzsa sepeti temizle
-        cart.getItems().clear();
-        cartRepository.save(cart);
-
-        return savedOrder;
-
-    } catch (Exception e) {
-        // ❌ Sipariş başarısızsa sepet dokunulmaz
-        throw new RuntimeException("Failed to place order: " + e.getMessage());
+        orderItems.add(item);
+        total += cartItem.getQuantity() * product.getPrice().doubleValue();
     }
+
+    order.setItems(orderItems);
+    order.setTotalPrice(total);
+
+    Order savedOrder = orderRepository.save(order);
+
+    cart.getItems().clear();
+    cartRepository.save(cart);
+
+    return savedOrder;
 }
 
     public void updateOrderItemStatus(Long orderItemId, OrderItemStatus status) {
