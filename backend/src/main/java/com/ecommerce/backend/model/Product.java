@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Entity
 @Table(name = "products")
 @Data
@@ -32,14 +34,15 @@ public class Product {
     private List<String> imageUrls = new ArrayList<>(); // image URL'leri
 
     @ManyToOne
-    @JoinColumn(name = "category_id")
+    @JsonBackReference() // ✅ Sonsuz döngüyü önler
     private Category category;
 
     @ManyToOne
+    @JsonBackReference("seller-products")
     @JoinColumn(name = "seller_id")
     private User seller;
 
     private boolean active = true;
-    
-    private boolean deletedByAdmin = false; 
+
+    private boolean deletedByAdmin = false;
 }

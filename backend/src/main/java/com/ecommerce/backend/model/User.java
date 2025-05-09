@@ -37,8 +37,9 @@ public class User {
     @JoinColumn(name = "user_id")
     @JsonManagedReference
     private List<Address> addresses;
-
+    
     @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("seller-products")
     private List<Product> products; // Kullanıcının sattığı ürünler
 
     private String stripeCustomerId; // Stripe müşteri ID'si

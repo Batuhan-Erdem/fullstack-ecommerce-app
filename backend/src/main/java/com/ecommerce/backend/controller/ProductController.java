@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -54,4 +55,19 @@ public class ProductController {
         productService.deleteProductByAdmin(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/seller/{sellerId}")
+@PreAuthorize("hasAnyRole('SELLER', 'ADMIN')")
+public ResponseEntity<List<Product>> getProductsBySeller(@PathVariable Long sellerId) {
+    return ResponseEntity.ok(productService.getProductsBySeller(sellerId));
+}
+@DeleteMapping("/delete/{productId}")
+@PreAuthorize("hasRole('SELLER')")
+public ResponseEntity<String> deleteProductBySeller(
+        @PathVariable Long productId,
+        Principal principal
+) {
+    productService.deleteProductBySeller(productId, principal.getName());
+    return ResponseEntity.ok("Ürün başarıyla silindi.");
+}
+
 }

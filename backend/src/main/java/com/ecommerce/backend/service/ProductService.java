@@ -67,4 +67,25 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    public List<Product> getProductsBySeller(Long sellerId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        return productRepository.findBySeller(seller);
+    }
+
+    public void deleteProductBySeller(Long productId, String sellerEmail) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        User seller = userRepository.findByEmail(sellerEmail)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        if (!product.getSeller().getId().equals(seller.getId())) {
+            throw new RuntimeException("Bu ürünü silmeye yetkiniz yok.");
+        }
+
+        productRepository.delete(product);
+    }
+
 }
