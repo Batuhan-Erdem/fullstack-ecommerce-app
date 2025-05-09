@@ -38,7 +38,12 @@ public class User {
     @JsonManagedReference
     private List<Address> addresses;
 
+    @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Product> products; // Kullanıcının sattığı ürünler
 
     private String stripeCustomerId; // Stripe müşteri ID'si
     private boolean isSellerRequested = false; // Seller olma talebi
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Order> orders; // Kullanıcının verdiği siparişler
 }

@@ -58,6 +58,7 @@ public Cart addToCart(Long userId, Long productId, int quantity) {
     CartItem newItem = CartItem.builder()
             .product(product)
             .quantity(quantity)
+            .cart(cart)
             .build();
 
     cart.getItems().add(newItem);
