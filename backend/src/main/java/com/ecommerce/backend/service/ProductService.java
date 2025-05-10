@@ -23,6 +23,11 @@ public class ProductService {
         return productRepository.findByActiveTrue();
     }
 
+    // Aktif ve admin tarafından silinmemiş ürünleri döndürmek
+    public List<Product> getActiveAndNotDeletedProducts() {
+        return productRepository.findByActiveTrueAndDeletedByAdminFalse();
+    }
+
     public List<Product> getProductsByCategory(Long categoryId) {
         return productRepository.findByCategoryId(categoryId);
     }
@@ -53,7 +58,34 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public void deleteProduct(Long productId) {
-        productRepository.deleteById(productId);
+    public void deleteProductByAdmin(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Ürünün "deletedByAdmin" kısmını true yapıyoruz
+        product.setDeletedByAdmin(true);
+        productRepository.save(product);
     }
+
+    public List<Product> getProductsBySeller(Long sellerId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        return productRepository.findBySeller(seller);
+    }
+
+    public void deleteProductBySeller(Long productId, String sellerEmail) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        User seller = userRepository.findByEmail(sellerEmail)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        if (!product.getSeller().getId().equals(seller.getId())) {
+            throw new RuntimeException("Bu ürünü silmeye yetkiniz yok.");
+        }
+
+        productRepository.delete(product);
+    }
+
 }

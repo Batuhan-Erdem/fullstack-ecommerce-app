@@ -22,11 +22,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-
-    public AuthResponse register(RegisterRequest request) {
+    private final AuthenticationManager authenticationManager;    public AuthResponse register(RegisterRequest request) {
         User user = User.builder()
-                .fullName(request.getFullName())
+                .fullName(request.getFirstName() + " " + request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
@@ -34,10 +32,8 @@ public class AuthService {
 
         userRepository.save(user);
         String token = jwtService.generateToken(user);
-        return new AuthResponse(token);
-    }
-
-    public AuthResponse login(AuthRequest request) {
+        return new AuthResponse(token, user.getRole().name(), user.getId());
+    }    public AuthResponse login(AuthRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -49,6 +45,6 @@ public class AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         String token = jwtService.generateToken(user);
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getRole().name(), user.getId());
     }
 }

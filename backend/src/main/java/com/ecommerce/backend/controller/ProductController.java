@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -14,16 +15,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService productService;
-
-    @GetMapping
-    public ResponseEntity<List<Product>> getAll() {
-        return ResponseEntity.ok(productService.getAllActiveProducts());
+    private final ProductService productService;    @GetMapping("/public/active")
+    public ResponseEntity<List<Product>> getPublicActiveProducts() {
+        return ResponseEntity.ok(productService.getActiveAndNotDeletedProducts());
     }
 
-    @GetMapping("/category/{id}")
-    public ResponseEntity<List<Product>> getByCategory(@PathVariable Long id) {
+    @GetMapping("/public/category/{id}")
+    public ResponseEntity<List<Product>> getPublicByCategory(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductsByCategory(id));
+    }
+
+    @GetMapping("/active-not-deleted")
+    public ResponseEntity<List<Product>> getActiveAndNotDeletedProducts() {
+        List<Product> products = productService.getActiveAndNotDeletedProducts();
+        return ResponseEntity.ok(products);
     }
 
     @PostMapping("/add/{sellerId}/{categoryId}")
@@ -43,10 +48,25 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        productService.deleteProduct(id);
+        productService.deleteProductByAdmin(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/seller/{sellerId}")
+@PreAuthorize("hasAnyRole('SELLER', 'ADMIN')")
+public ResponseEntity<List<Product>> getProductsBySeller(@PathVariable Long sellerId) {
+    return ResponseEntity.ok(productService.getProductsBySeller(sellerId));
+}
+@DeleteMapping("/delete/{productId}")
+@PreAuthorize("hasRole('SELLER')")
+public ResponseEntity<String> deleteProductBySeller(
+        @PathVariable Long productId,
+        Principal principal
+) {
+    productService.deleteProductBySeller(productId, principal.getName());
+    return ResponseEntity.ok("Ürün başarıyla silindi.");
+}
+
 }

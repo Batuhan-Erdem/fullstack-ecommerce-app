@@ -1,11 +1,13 @@
 package com.ecommerce.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Table(name = "order_items")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,10 +17,18 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // ✅ fetch tipi netleştirildi
     private Product product;
 
     private int quantity;
 
-    private double priceAtPurchase; // Sipariş anındaki birim fiyat
+    private double priceAtPurchase;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderItemStatus status = OrderItemStatus.PREPARING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Order order;
 }

@@ -3,6 +3,11 @@ package com.ecommerce.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -29,10 +34,19 @@ public class User {
 
     private boolean banned = false;
 
-    private String addressLine;
-    private String city;
-    private String postalCode;
-    private String country;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties("user")
+    private List<Address> addresses;
 
-    private String phoneNumber; // ✅ Yeni eklendi
+    @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("seller")
+    private List<Product> products; // Kullanıcının sattığı ürünler
+
+    private String stripeCustomerId; // Stripe müşteri ID'si
+    private boolean isSellerRequested = false; // Seller olma talebi
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("customer")
+    private List<Order> orders; // Kullanıcının verdiği siparişler
 }

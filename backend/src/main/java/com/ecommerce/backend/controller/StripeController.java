@@ -66,4 +66,5 @@ public class StripeController {
             return ResponseEntity.badRequest().body("Webhook error: " + e.getMessage());
         }
     }
+    
 }
